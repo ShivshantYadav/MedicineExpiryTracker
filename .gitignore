@@ -1,0 +1,9 @@
+# Ignore compiled Java files
+*.class
+
+# Ignore Maven target folder
+target/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
