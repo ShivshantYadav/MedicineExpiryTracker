@@ -1,0 +1,5 @@
+Notes:
+- Change DB credentials in DBConnection.java before running.
+- For real deployment change demo background timer to run daily (86400000 ms) instead of 60000 ms.
+- Create folder resources/barcode before generating QR images.
+- To scan barcodes you will need a separate camera integration; this project only shows QR generation.

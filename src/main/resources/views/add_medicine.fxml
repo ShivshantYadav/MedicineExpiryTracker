@@ -1,0 +1,2 @@
+FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/add_medicine.fxml"));
+Parent root = loader.load();
