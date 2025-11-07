@@ -2,17 +2,12 @@ package com.example.dao;
 
 import com.example.models.Medicine;
 
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MedicineDAO {
 
-    // Get all medicines
     public static List<Medicine> getAll() {
         List<Medicine> list = new ArrayList<>();
         String sql = "SELECT * FROM medicines";
@@ -22,7 +17,7 @@ public class MedicineDAO {
              ResultSet rs = p.executeQuery()) {
 
             while (rs.next()) {
-                Medicine m = new Medicine(
+                list.add(new Medicine(
                         rs.getInt("medicine_id"),
                         rs.getString("name"),
                         rs.getString("batch_no"),
@@ -31,8 +26,7 @@ public class MedicineDAO {
                         rs.getInt("min_quantity"),
                         rs.getObject("supplier_id") == null ? null : rs.getInt("supplier_id"),
                         rs.getString("barcode")
-                );
-                list.add(m);
+                ));
             }
 
         } catch (SQLException e) {
@@ -42,7 +36,6 @@ public class MedicineDAO {
         return list;
     }
 
-    // Add new medicine
     public static boolean add(Medicine m) {
         String sql = "INSERT INTO medicines (name, batch_no, expiry_date, quantity, min_quantity, supplier_id, barcode) VALUES (?,?,?,?,?,?,?)";
 
@@ -61,9 +54,7 @@ public class MedicineDAO {
             }
             p.setString(7, m.getBarcode());
 
-            int rows = p.executeUpdate();
-            System.out.println("Rows inserted: " + rows);
-            return rows > 0;
+            return p.executeUpdate() > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -71,7 +62,6 @@ public class MedicineDAO {
         }
     }
 
-    // Update quantity
     public static boolean updateQuantity(int medicineId, int newQty) {
         String sql = "UPDATE medicines SET quantity = ? WHERE medicine_id = ?";
 
@@ -81,9 +71,7 @@ public class MedicineDAO {
             p.setInt(1, newQty);
             p.setInt(2, medicineId);
 
-            int rows = p.executeUpdate();
-            System.out.println("Rows updated: " + rows);
-            return rows > 0;
+            return p.executeUpdate() > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -91,7 +79,6 @@ public class MedicineDAO {
         }
     }
 
-    // Get medicines expiring within X days
     public static List<Medicine> getExpiringWithinDays(int days) {
         List<Medicine> list = new ArrayList<>();
         String sql = "SELECT * FROM medicines WHERE expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)";
@@ -102,7 +89,7 @@ public class MedicineDAO {
             p.setInt(1, days);
             try (ResultSet rs = p.executeQuery()) {
                 while (rs.next()) {
-                    Medicine m = new Medicine(
+                    list.add(new Medicine(
                             rs.getInt("medicine_id"),
                             rs.getString("name"),
                             rs.getString("batch_no"),
@@ -111,8 +98,7 @@ public class MedicineDAO {
                             rs.getInt("min_quantity"),
                             rs.getObject("supplier_id") == null ? null : rs.getInt("supplier_id"),
                             rs.getString("barcode")
-                    );
-                    list.add(m);
+                    ));
                 }
             }
 
@@ -123,7 +109,6 @@ public class MedicineDAO {
         return list;
     }
 
-    // Get low stock medicines
     public static List<Medicine> getLowStock() {
         List<Medicine> list = new ArrayList<>();
         String sql = "SELECT * FROM medicines WHERE quantity <= min_quantity";
@@ -133,7 +118,7 @@ public class MedicineDAO {
              ResultSet rs = p.executeQuery()) {
 
             while (rs.next()) {
-                Medicine m = new Medicine(
+                list.add(new Medicine(
                         rs.getInt("medicine_id"),
                         rs.getString("name"),
                         rs.getString("batch_no"),
@@ -142,8 +127,7 @@ public class MedicineDAO {
                         rs.getInt("min_quantity"),
                         rs.getObject("supplier_id") == null ? null : rs.getInt("supplier_id"),
                         rs.getString("barcode")
-                );
-                list.add(m);
+                ));
             }
 
         } catch (SQLException e) {

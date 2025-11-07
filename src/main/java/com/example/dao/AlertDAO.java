@@ -8,53 +8,66 @@ import java.util.List;
 
 public class AlertDAO {
 
-    // Insert a new alert into the database
-    public static void addAlert(String message, String type) {
-        String sql = "INSERT INTO alerts (message, type) VALUES (?, ?)";
-        try (Connection c = DBConnection.getConnection();
-            PreparedStatement p = c.prepareStatement(sql)) {
+    // ✅ Add a new alert
+    public static void addAlert(String message, String type) throws DAOException {
+        final String sql = "INSERT INTO alerts (message, type, date_created) VALUES (?, ?, NOW())";
 
-            p.setString(1, message);
-            p.setString(2, type);
-            int rows = p.executeUpdate();
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            if (rows > 0) {
-                System.out.println("✅ Alert added successfully: " + message);
+            stmt.setString(1, message);
+            stmt.setString(2, type);
+
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new DAOException("No alert inserted for: " + message, null);
             } else {
-                System.err.println("⚠️ No alert inserted (check database structure).");
+                System.out.println("✅ Alert added: " + message + " (" + type + ")");
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Error while adding alert: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error adding alert: " + message, e);
         }
     }
 
-    // Fetch all alerts from the database
-    public static List<AlertModel> getAll() {
-        List<AlertModel> list = new ArrayList<>();
-        String sql = "SELECT * FROM alerts ORDER BY date_created DESC";
+    // ✅ Fetch all alerts
+    public static List<AlertModel> getAll() throws DAOException {
+        List<AlertModel> alerts = new ArrayList<>();
+        final String sql = "SELECT alert_id, message, type, date_created FROM alerts ORDER BY date_created DESC";
 
-        try (Connection c = DBConnection.getConnection();
-             Statement s = c.createStatement();
-             ResultSet rs = s.executeQuery(sql)) {
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
                 Timestamp ts = rs.getTimestamp("date_created");
-                AlertModel a = new AlertModel(
+                AlertModel alert = new AlertModel(
                         rs.getInt("alert_id"),
                         rs.getString("message"),
                         rs.getString("type"),
-                        ts != null ? ts.toLocalDateTime() : null
-                );
-                list.add(a);
+                        ts != null ? ts.toLocalDateTime() : null);
+                alerts.add(alert);
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Error while fetching alerts: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error fetching alerts", e);
         }
 
-        return list;
+        return alerts;
+    }
+
+    // ✅ Clear all alerts
+    public static void clearAll() throws DAOException {
+        final String sql = "DELETE FROM alerts";
+
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            int deleted = stmt.executeUpdate();
+            System.out.println("🗑️ Cleared " + deleted + " alerts from database.");
+
+        } catch (SQLException e) {
+            throw new DAOException("Error clearing alerts", e);
+        }
     }
 }

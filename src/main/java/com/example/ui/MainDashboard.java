@@ -52,8 +52,8 @@ public class MainDashboard {
         colBatch.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getBatchNo()));
 
         TableColumn<Medicine, String> colExpiry = new TableColumn<>("Expiry");
-        colExpiry.setCellValueFactory(c -> 
-            new SimpleStringProperty(c.getValue().getExpiryDate().format(dateFormatter))
+        colExpiry.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getExpiryDate().format(dateFormatter))
         );
 
         TableColumn<Medicine, String> colQty = new TableColumn<>("Qty");
@@ -73,13 +73,30 @@ public class MainDashboard {
         root.setRight(right);
 
         // --- Button actions ---
-        btnAdd.setOnAction(e -> new AddMedicineForm().showAndWait());
-        btnSuppliers.setOnAction(e -> new SupplierForm().showAndWait());
+        btnAdd.setOnAction(e -> {
+            try {
+                new AddMedicineForm().showAndWait();
+                refreshData();
+            } catch (Exception ex) {
+                showError("Error opening Add Medicine form", ex);
+            }
+        });
+
+        btnSuppliers.setOnAction(e -> {
+            try {
+                new SupplierForm().showAndWait();
+                refreshData();
+            } catch (Exception ex) {
+                showError("Error opening Supplier form", ex);
+            }
+        });
+
         btnRefresh.setOnAction(e -> refreshData());
+
         btnReports.setOnAction(e -> {
             boolean ok = new ReportGenerator().generateExpiringCSV("expiring_report.csv", 30);
-            Alert a = new Alert(ok ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR, 
-                                ok ? "Report generated: expiring_report.csv" : "Failed to generate report");
+            Alert a = new Alert(ok ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR,
+                    ok ? "Report generated: expiring_report.csv" : "Failed to generate report");
             a.showAndWait();
         });
 
@@ -92,22 +109,42 @@ public class MainDashboard {
     }
 
     public void refreshData() {
-        List<Medicine> meds = MedicineDAO.getAll();
-        table.getItems().setAll(meds);
-
-        List<AlertModel> alerts = AlertDAO.getAll();
-        alertsList.getItems().clear();
-        for (AlertModel a : alerts) {
-            alertsList.getItems().add(a.getDateCreated().format(dateFormatter) + " - " + a.getMessage());
+        // Load medicines
+        try {
+            List<Medicine> meds = MedicineDAO.getAll();
+            table.getItems().setAll(meds);
+        } catch (Exception e) {
+            showError("Failed to load medicines", e);
         }
+
+        // Load alerts
+        try {
+            List<AlertModel> alerts = AlertDAO.getAll();
+            alertsList.getItems().clear();
+            for (AlertModel a : alerts) {
+                alertsList.getItems().add(a.getDateCreated().format(dateFormatter) + " - " + a.getMessage());
+            }
+        } catch (Exception e) {
+            showError("Failed to load alerts", e);
+        }
+    }
+
+    private void showError(String message, Exception e) {
+        e.printStackTrace();
+        Alert alert = new Alert(Alert.AlertType.ERROR, message + ": " + e.getMessage());
+        alert.showAndWait();
     }
 
     // --- Background checks ---
     public void startBackgroundChecks() {
         scheduler = Executors.newSingleThreadScheduledExecutor();
         Runnable task = () -> {
-            new ExpiryChecker().runCheck();
-            new StockManager().checkLowStock();
+            try {
+                new ExpiryChecker().runCheck();
+                new StockManager().checkLowStock();
+            } catch (Exception e) {
+                Platform.runLater(() -> showError("Background check failed", e));
+            }
             Platform.runLater(this::refreshData);
         };
         // Run every 60 seconds for demo; for real use: 24 hours = 86400 seconds

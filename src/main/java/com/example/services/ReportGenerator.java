@@ -13,10 +13,19 @@ public class ReportGenerator {
         try (FileWriter fw = new FileWriter(path)) {
             fw.append("Medicine, Batch, ExpiryDate, Quantity, SupplierId\n");
             for (Medicine m : list) {
-                fw.append(String.format("%s,%s,%s,%d,%s\n", m.getName(), m.getBatchNo(), m.getExpiryDate().toString(), m.getQuantity(), m.getSupplierId()==null?"":m.getSupplierId()));
+                fw.append(String.format(
+                    "%s,%s,%s,%d,%s\n",
+                    m.getName(),
+                    m.getBatchNo(),
+                    m.getExpiryDate().toString(),
+                    m.getQuantity(),
+                    m.getSupplierId() == null ? "" : m.getSupplierId()
+                ));
             }
             return true;
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return false;
     }
 }

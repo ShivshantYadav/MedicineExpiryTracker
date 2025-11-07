@@ -1,7 +1,6 @@
-package com.example.dao;
+ package com.example.dao;
 
 import com.example.models.Supplier;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +9,7 @@ import java.util.Optional;
 public class SupplierDAO {
 
     // Fetch all suppliers
-    public static List<Supplier> getAll() {
+    public static List<Supplier> getAll() throws DAOException {
         List<Supplier> suppliers = new ArrayList<>();
         String sql = "SELECT * FROM suppliers ORDER BY name";
 
@@ -23,21 +22,20 @@ public class SupplierDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Error fetching suppliers: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error fetching all suppliers", e);
         }
 
         return suppliers;
     }
 
-    // Fetch a supplier by ID
-    public static Optional<Supplier> getById(int id) {
+    // Fetch supplier by ID
+    public static Optional<Supplier> getById(int id) throws DAOException {
         String sql = "SELECT * FROM suppliers WHERE supplier_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
 
+            ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapResultSetToSupplier(rs));
@@ -45,15 +43,14 @@ public class SupplierDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Error fetching supplier by ID: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error fetching supplier by ID: " + id, e);
         }
 
         return Optional.empty();
     }
 
-    // Add a new supplier and return the generated ID
-    public static int add(Supplier supplier) {
+    // Add new supplier
+    public static int add(Supplier supplier) throws DAOException {
         String sql = "INSERT INTO suppliers (name, contact, email, address) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
@@ -67,26 +64,18 @@ public class SupplierDAO {
             int rows = ps.executeUpdate();
             if (rows > 0) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        int id = rs.getInt(1);
-                        System.out.println("✅ Supplier added with ID: " + id);
-                        return id;
-                    }
+                    if (rs.next()) return rs.getInt(1);
                 }
-            } else {
-                System.err.println("⚠️ Supplier insertion failed.");
             }
+            throw new DAOException("Failed to add supplier: " + supplier.getName(), null);
 
         } catch (SQLException e) {
-            System.err.println("❌ Error adding supplier: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error adding supplier: " + supplier.getName(), e);
         }
-
-        return -1;
     }
 
-    // Update existing supplier
-    public static boolean update(Supplier supplier) {
+    // Update supplier
+    public static void update(Supplier supplier) throws DAOException {
         String sql = "UPDATE suppliers SET name=?, contact=?, email=?, address=? WHERE supplier_id=?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -98,35 +87,58 @@ public class SupplierDAO {
             ps.setString(4, supplier.getAddress());
             ps.setInt(5, supplier.getSupplierId());
 
-            return ps.executeUpdate() > 0;
+            int updated = ps.executeUpdate();
+            if (updated == 0) {
+                throw new DAOException("No supplier updated. ID may not exist: " + supplier.getSupplierId(), null);
+            }
 
         } catch (SQLException e) {
-            System.err.println("❌ Error updating supplier: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error updating supplier ID: " + supplier.getSupplierId(), e);
         }
-
-        return false;
     }
 
-    // Delete supplier by ID
-    public static boolean delete(int supplierId) {
+    // ✅ Fixed Delete supplier
+    public static void delete(int supplierId) throws DAOException {
         String sql = "DELETE FROM suppliers WHERE supplier_id=?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, supplierId);
-            return ps.executeUpdate() > 0;
+            ps.setInt(1, supplierId); // 🔧 Added this line
+            int deleted = ps.executeUpdate();
+
+            if (deleted == 0) {
+                throw new DAOException("No supplier deleted. ID may not exist: " + supplierId, null);
+            }
 
         } catch (SQLException e) {
-            System.err.println("❌ Error deleting supplier: " + e.getMessage());
-            e.printStackTrace();
+            throw new DAOException("Error deleting supplier ID: " + supplierId, e);
         }
-
-        return false;
     }
 
-    // Utility method to map ResultSet to Supplier object
+    // Search suppliers by name
+    public static List<Supplier> searchByName(String name) throws DAOException {
+        List<Supplier> suppliers = new ArrayList<>();
+        String sql = "SELECT * FROM suppliers WHERE name LIKE ? ORDER BY name";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + name + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    suppliers.add(mapResultSetToSupplier(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new DAOException("Error searching suppliers by name: " + name, e);
+        }
+
+        return suppliers;
+    }
+
+    // Map ResultSet to Supplier
     private static Supplier mapResultSetToSupplier(ResultSet rs) throws SQLException {
         return new Supplier(
                 rs.getInt("supplier_id"),
