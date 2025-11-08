@@ -7,6 +7,7 @@ com\example\dao\SupplierDAO.class
 com\example\services\ReportGenerator.class
 com\example\models\AlertModel.class
 com\example\ui\AlertDashboardView.class
+com\example\dao\DBInitializer.class
 com\example\ui\SupplierForm.class
 com\example\dao\DAOException.class
 com\example\ui\MainDashboard.class
